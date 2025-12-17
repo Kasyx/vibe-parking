@@ -1,0 +1,387 @@
+.app-root {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.app-header {
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #666;
+  max-width: 680px;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.layout-two-columns {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .layout-two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.person-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.form-row input[type='text'],
+.form-row input[type='number'],
+.form-row select {
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #d4d4d8;
+  font-size: 0.95rem;
+}
+
+.form-row input[type='text']:focus,
+.form-row input[type='number']:focus,
+.form-row select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb33;
+}
+
+fieldset.form-row {
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 0.75rem 1rem 0.9rem;
+}
+
+fieldset legend {
+  padding: 0 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+fieldset label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.inline-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.weekday-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.weekday-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid #e4e4e7;
+  font-size: 0.8rem;
+  background: #fafafa;
+}
+
+.weekday-pill input {
+  margin: 0;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+}
+
+.form-actions button {
+  min-width: 120px;
+}
+
+.error-text {
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
+.rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rules-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+}
+
+.slider-row {
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.slider-row input[type='range'] {
+  width: 100%;
+}
+
+.slider-value {
+  font-size: 0.8rem;
+  color: #4b5563;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.plan-wrapper {
+  margin-top: 1rem;
+}
+
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.plan-table th,
+.plan-table td {
+  padding: 0.35rem 0.4rem;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.plan-place-name {
+  text-align: left;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cell-empty {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+.cell-ok {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.cell-conflict {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.plan-scores {
+  margin-top: 1.25rem;
+}
+
+.group-assignment-editor {
+  margin-top: 0.5rem;
+}
+
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.group-box {
+  border: 2px dashed #d4d4d8;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background-color: #fafafa;
+  min-height: 120px;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.group-box:hover {
+  border-color: #2563eb;
+  background-color: #f0f9ff;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.group-count {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.group-persons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 60px;
+}
+
+.person-drag-item {
+  padding: 0.4rem 0.6rem;
+  background-color: white;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: grab;
+  user-select: none;
+  transition: background-color 120ms ease, transform 60ms ease;
+}
+
+.person-drag-item:hover {
+  background-color: #eff6ff;
+  border-color: #2563eb;
+}
+
+.person-drag-item:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.group-empty {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+  padding: 0.5rem;
+  font-style: italic;
+}
+
+.person-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.person-table th,
+.person-table td {
+  padding: 0.5rem 0.45rem;
+  border-bottom: 1px solid #e4e4e7;
+  text-align: left;
+}
+
+.person-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.person-table th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6b7280;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.row-editing {
+  background: #eef2ff;
+}
+
+button {
+  border-radius: 999px;
+  border: 1px solid #d4d4d8;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  background-color: #f9fafb;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 60ms ease;
+}
+
+button:hover {
+  background-color: #eff6ff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.15);
+}
+
+button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+button.primary {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+button.primary:hover {
+  background-color: #1d4ed8;
+}
+
+button.danger {
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+button.danger:hover {
+  background-color: #fee2e2;
+  border-color: #dc2626;
+}
