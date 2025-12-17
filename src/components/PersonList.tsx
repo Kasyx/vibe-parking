@@ -74,9 +74,21 @@ export function PersonList({
               rules.length === 0
                 ? 'Brak harmonogramu'
                 : rules.map((r) => describeRule(r)).join('; ')
-            const team =
-              person.teamId && TEAM_BY_ID[person.teamId]
-                ? TEAM_BY_ID[person.teamId].name
+            // Obsługa migracji: jeśli teamIds nie istnieje, sprawdź teamId
+            let teamIds: string[] = []
+            if ('teamIds' in person && Array.isArray(person.teamIds)) {
+              teamIds = person.teamIds
+            } else if ('teamId' in person) {
+              const oldPerson = person as unknown as { teamId?: string | null }
+              teamIds = oldPerson.teamId && oldPerson.teamId !== null ? [oldPerson.teamId] : []
+            }
+            
+            const teamNames =
+              teamIds.length > 0
+                ? teamIds
+                    .map((id) => TEAM_BY_ID[id]?.name)
+                    .filter(Boolean)
+                    .join(', ') || '—'
                 : '—'
 
             return (
@@ -87,7 +99,7 @@ export function PersonList({
                 }
               >
                 <td>{person.fullName}</td>
-                <td>{team}</td>
+                <td>{teamNames}</td>
                 <td>{description}</td>
                 <td className="actions-cell">
                   <button type="button" onClick={() => onEdit(person)}>

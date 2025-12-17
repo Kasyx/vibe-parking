@@ -4,6 +4,7 @@ import type {
   GroupAssignment,
   ParkingPlaceConfig,
 } from '../utils/planner'
+import type { ScheduleRule } from '../types/schedule'
 
 interface GroupAssignmentEditorProps {
   persons: Person[]
@@ -21,6 +22,39 @@ export function GroupAssignmentEditor({
   const [draggedPersonId, setDraggedPersonId] = useState<string | null>(null)
 
   const personsById = new Map(persons.map((p) => [p.id, p]))
+
+  /**
+   * Zwraca listę kolorów kropek na podstawie harmonogramów osoby.
+   * Każdy typ harmonogramu ma swój kolor:
+   * - czerwona: ALWAYS_ON_DAYS
+   * - żółta: ONE_OF_DAYS
+   * - zielona: X_TIMES_PER_MONTH
+   */
+  function getPersonDotColors(person: Person): Array<'red' | 'yellow' | 'green'> {
+    const rules = person.scheduleRules ?? []
+    if (rules.length === 0) return []
+
+    const colors: Array<'red' | 'yellow' | 'green'> = []
+    const types = new Set<string>()
+
+    for (const rule of rules) {
+      if (rule.type === 'ALWAYS_ON_DAYS' && !types.has('ALWAYS_ON_DAYS')) {
+        colors.push('red')
+        types.add('ALWAYS_ON_DAYS')
+      } else if (rule.type === 'ONE_OF_DAYS' && !types.has('ONE_OF_DAYS')) {
+        colors.push('yellow')
+        types.add('ONE_OF_DAYS')
+      } else if (
+        rule.type === 'X_TIMES_PER_MONTH' &&
+        !types.has('X_TIMES_PER_MONTH')
+      ) {
+        colors.push('green')
+        types.add('X_TIMES_PER_MONTH')
+      }
+    }
+
+    return colors
+  }
 
   const handleDragStart = (personId: string) => {
     setDraggedPersonId(personId)
@@ -65,6 +99,20 @@ export function GroupAssignmentEditor({
       <p className="subtitle">
         Przeciągnij osobę między grupami, aby zmienić jej przypisanie.
       </p>
+      <div className="dots-legend">
+        <span className="legend-item">
+          <span className="person-dot person-dot-red" />
+          <span>ZAWSZE w wybrane dni</span>
+        </span>
+        <span className="legend-item">
+          <span className="person-dot person-dot-yellow" />
+          <span>Jeden z wybranych dni</span>
+        </span>
+        <span className="legend-item">
+          <span className="person-dot person-dot-green" />
+          <span>X razy w miesiącu</span>
+        </span>
+      </div>
       <div className="groups-grid">
         {places.map((place) => {
           const group = groupAssignments.find((g) => g.placeId === place.id)
@@ -87,17 +135,37 @@ export function GroupAssignmentEditor({
                 </span>
               </div>
               <div className="group-persons">
-                {groupPersons.map((person) => (
-                  <div
-                    key={person.id}
-                    className="person-drag-item"
-                    draggable
-                    onDragStart={() => handleDragStart(person.id)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    {person.fullName}
-                  </div>
-                ))}
+                {groupPersons.map((person) => {
+                  const dotColors = getPersonDotColors(person)
+                  const getDotTitle = (color: 'red' | 'yellow' | 'green') => {
+                    if (color === 'red') return 'Harmonogram: ZAWSZE w wybrane dni'
+                    if (color === 'yellow') return 'Harmonogram: Jeden z wybranych dni'
+                    return 'Harmonogram: X razy w miesiącu'
+                  }
+
+                  return (
+                    <div
+                      key={person.id}
+                      className="person-drag-item"
+                      draggable
+                      onDragStart={() => handleDragStart(person.id)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      {dotColors.length > 0 && (
+                        <span className="person-dots">
+                          {dotColors.map((color, index) => (
+                            <span
+                              key={`${color}-${index}`}
+                              className={`person-dot person-dot-${color}`}
+                              title={getDotTitle(color)}
+                            />
+                          ))}
+                        </span>
+                      )}
+                      {person.fullName}
+                    </div>
+                  )
+                })}
                 {groupPersonIds.length === 0 && (
                   <div className="group-empty">Przeciągnij osoby tutaj</div>
                 )}

@@ -13,7 +13,7 @@ import { TEAMS } from '../types/team'
 
 export interface PersonFormValues {
   fullName: string
-  teamId: string
+  teamIds: string[]
   ruleType: ScheduleRuleType
   alwaysOnDays: Weekday[]
   alwaysOnWeekInterval: 1 | 2 | 3 | 4
@@ -25,7 +25,7 @@ export interface PersonFormValues {
 
 const DEFAULT_VALUES: PersonFormValues = {
   fullName: '',
-  teamId: '',
+  teamIds: [],
   ruleType: 'ALWAYS_ON_DAYS',
   alwaysOnDays: [],
   alwaysOnWeekInterval: 1,
@@ -83,10 +83,19 @@ function createRuleFromValues(values: PersonFormValues): ScheduleRule {
 function mapPersonToFormValues(person: Person): PersonFormValues {
   // Przy edycji osoby nie wczytujemy konkretnej reguły do formularza tworzenia nowej,
   // tylko ustawiamy imię i nazwisko, a istniejące reguły trafiają do osobnego stanu.
+  // Obsługa migracji: jeśli teamIds nie istnieje, sprawdź teamId
+  let teamIds: string[] = []
+  if ('teamIds' in person && Array.isArray(person.teamIds)) {
+    teamIds = person.teamIds
+  } else if ('teamId' in person) {
+    const oldPerson = person as unknown as { teamId?: string | null }
+    teamIds = oldPerson.teamId && oldPerson.teamId !== null ? [oldPerson.teamId] : []
+  }
+  
   return {
     ...DEFAULT_VALUES,
     fullName: person.fullName,
-    teamId: person.teamId ?? '',
+    teamIds,
   }
 }
 
@@ -151,12 +160,6 @@ function validate(values: PersonFormValues, rulesCount: number): ValidationError
   const fullNameError = validatePersonName(values.fullName)
   if (fullNameError) {
     errors.fullName = fullNameError
-  }
-
-  if (!values.teamId) {
-    errors.schedule = errors.schedule
-      ? errors.schedule
-      : 'Wybierz zespół, w którym pracuje ta osoba.'
   }
 
   if (rulesCount === 0) {
@@ -271,7 +274,7 @@ export function PersonForm({
 
     const payload: Omit<Person, 'id'> = {
       fullName: values.fullName.trim(),
-      teamId: values.teamId || null,
+      teamIds: values.teamIds,
       scheduleRules: rules,
     }
     onSubmit(payload, editingPerson?.id)
@@ -303,21 +306,41 @@ export function PersonForm({
         </div>
 
         <div className="form-row">
-          <label htmlFor="teamId">
-            Zespół
-            <select
-              id="teamId"
-              value={values.teamId}
-              onChange={handleChange('teamId')}
-            >
-              <option value="">– wybierz zespół –</option>
+          <div className="inline-group">
+            <span className="field-label">Zespoły (można wybrać wiele)</span>
+            <div className="team-checkboxes">
               {TEAMS.map((team) => (
-                <option key={team.id} value={team.id}>
+                <label key={team.id} className="team-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={values.teamIds.includes(team.id)}
+                    onChange={(e) => {
+                      setValues((prev) => {
+                        const current = prev.teamIds
+                        if (e.target.checked) {
+                          return {
+                            ...prev,
+                            teamIds: [...current, team.id],
+                          }
+                        } else {
+                          return {
+                            ...prev,
+                            teamIds: current.filter((id) => id !== team.id),
+                          }
+                        }
+                      })
+                    }}
+                  />
                   {team.name}
-                </option>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+            {values.teamIds.length === 0 && (
+              <p className="hint-text">
+                Osoba może nie mieć przypisanego żadnego zespołu
+              </p>
+            )}
+          </div>
         </div>
 
         <fieldset className="form-row">

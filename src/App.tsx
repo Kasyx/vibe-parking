@@ -1,5 +1,5 @@
 import './App.css'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PersonForm } from './components/PersonForm'
 import { PersonList } from './components/PersonList'
 import { ParkingPlanTable } from './components/ParkingPlanTable'
@@ -9,6 +9,8 @@ import { DEFAULT_OBJECTIVE_WEIGHTS } from './types/objectives'
 import {
   generateParkingPlan,
   updatePlanAfterGroupChange,
+  performSimulatedAnnealingIteration,
+  calculateTotalScore,
   type ParkingPlan,
 } from './utils/planner'
 import { GroupAssignmentEditor } from './components/GroupAssignmentEditor'
@@ -27,6 +29,33 @@ function App() {
   const [groupAssignments, setGroupAssignments] = useState<
     GroupAssignment[] | null
   >(null)
+  const [iterationCount, setIterationCount] = useState<number>(0)
+  const [totalScore, setTotalScore] = useState<number>(0)
+
+  // Migracja danych: konwersja teamId -> teamIds
+  useEffect(() => {
+    const needsMigration = persons.some(
+      (p) => !('teamIds' in p) || p.teamIds === undefined,
+    )
+    if (needsMigration) {
+      setPersons((prev) =>
+        prev.map((p) => {
+          // Jeśli ma starą strukturę (teamId), przekonwertuj
+          if (!('teamIds' in p) || p.teamIds === undefined) {
+            const oldPerson = p as unknown as { teamId?: string | null }
+            return {
+              ...p,
+              teamIds:
+                oldPerson.teamId && oldPerson.teamId !== null
+                  ? [oldPerson.teamId]
+                  : [],
+            }
+          }
+          return p
+        }),
+      )
+    }
+  }, [persons, setPersons])
 
   const editingPerson = persons.find((p) => p.id === editingPersonId) ?? null
 
@@ -92,6 +121,8 @@ function App() {
       }
     })
     setGroupAssignments(assignments)
+    setIterationCount(0)
+    setTotalScore(calculateTotalScore(nextPlan))
   }
 
   const handleGroupChange = (assignments: GroupAssignment[]) => {
@@ -113,6 +144,56 @@ function App() {
 
     setPlan(updatedPlan)
     setGroupAssignments(assignments)
+    setTotalScore(calculateTotalScore(updatedPlan))
+  }
+
+  const handleRunIterations = () => {
+    if (!plan || !groupAssignments) return
+
+    const places = Array.from({ length: placesCount }, (_, index) => ({
+      id: `P${index + 1}`,
+      name: `Miejsce ${index + 1}`,
+      maxPersons: maxPersonsPerPlace,
+    }))
+
+    let currentPlan = plan
+    let currentAssignments = groupAssignments
+    let bestPlan = plan
+    let bestAssignments = groupAssignments
+    let bestScore = totalScore
+    let newIterationCount = iterationCount
+
+    // Wykonaj 500 iteracji
+    for (let i = 0; i < 500; i += 1) {
+      const result = performSimulatedAnnealingIteration(
+        currentPlan,
+        currentAssignments,
+        persons,
+        places,
+        weights,
+      )
+
+      if (result) {
+        // Akceptuj zmianę jeśli jest lepsza lub taka sama
+        if (result.totalScore <= bestScore) {
+          bestPlan = result.newPlan
+          bestAssignments = result.newAssignments
+          bestScore = result.totalScore
+        }
+
+        // W symulowanym wyżarzaniu akceptujemy też gorsze rozwiązania z prawdopodobieństwem
+        // Na razie akceptujemy tylko lepsze lub równe
+        currentPlan = result.newPlan
+        currentAssignments = result.newAssignments
+        newIterationCount += 1
+      }
+    }
+
+    // Zastosuj najlepsze rozwiązanie
+    setPlan(bestPlan)
+    setGroupAssignments(bestAssignments)
+    setTotalScore(bestScore)
+    setIterationCount(newIterationCount)
   }
 
   return (
@@ -244,6 +325,25 @@ function App() {
                 groupAssignments={groupAssignments}
                 onGroupChange={handleGroupChange}
               />
+              <div className="optimization-controls">
+                <div className="optimization-stats">
+                  <div className="stat-item">
+                    <span className="stat-label">Suma wag:</span>
+                    <span className="stat-value">{totalScore.toFixed(2)}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Iteracje:</span>
+                    <span className="stat-value">{iterationCount}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleRunIterations}
+                >
+                  Wykonaj 500 iteracji optymalizacji
+                </button>
+              </div>
             </section>
 
             <section className="card">

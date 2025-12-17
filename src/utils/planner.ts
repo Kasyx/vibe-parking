@@ -328,18 +328,36 @@ function computePlaceScores(
   for (const placeId of placeIds) {
     const groupPersons = personsByPlace.get(placeId) ?? new Set<string>()
 
-    // teamSeparationScore: liczba par osób z tego samego zespołu (im więcej, tym gorzej)
-    const teamCountsByTeam = new Map<string, number>()
-    for (const pid of groupPersons) {
-      const person = personsById.get(pid)
-      if (!person || !person.teamId) continue
-      const current = teamCountsByTeam.get(person.teamId) ?? 0
-      teamCountsByTeam.set(person.teamId, current + 1)
-    }
+    // teamSeparationScore: liczba par osób mających wspólny zespół (im więcej, tym gorzej)
+    // Dwie osoby tworzą parę jeśli mają przynajmniej jeden wspólny zespół
+    const personList = Array.from(groupPersons)
+      .map((pid) => {
+        const p = personsById.get(pid)
+        if (!p) return null
+        // Obsługa migracji: jeśli teamIds nie istnieje, sprawdź teamId
+        let teamIds: string[] = []
+        if ('teamIds' in p && Array.isArray(p.teamIds)) {
+          teamIds = p.teamIds
+        } else if ('teamId' in p) {
+          const oldPerson = p as unknown as { teamId?: string | null }
+          teamIds = oldPerson.teamId && oldPerson.teamId !== null ? [oldPerson.teamId] : []
+        }
+        return { ...p, teamIds }
+      })
+      .filter((p): p is Person & { teamIds: string[] } => p !== null && p.teamIds.length > 0)
+    
     let teamPairs = 0
-    for (const count of teamCountsByTeam.values()) {
-      if (count > 1) {
-        teamPairs += (count * (count - 1)) / 2
+    for (let i = 0; i < personList.length; i += 1) {
+      for (let j = i + 1; j < personList.length; j += 1) {
+        const personA = personList[i]
+        const personB = personList[j]
+        // Sprawdź czy mają wspólny zespół
+        const hasCommonTeam = personA.teamIds.some((teamId) =>
+          personB.teamIds.includes(teamId),
+        )
+        if (hasCommonTeam) {
+          teamPairs += 1
+        }
       }
     }
     const teamSeparationScore = teamPairs * wTeam
@@ -465,6 +483,122 @@ export function updatePlanAfterGroupChange(
   return {
     ...updatedPlan,
     placeScores,
+  }
+}
+
+/**
+ * Oblicza całkowitą sumę wag dla wszystkich grup (cel: minimalizacja, idealnie 0).
+ */
+export function calculateTotalScore(plan: ParkingPlan): number {
+  return plan.placeScores.reduce((sum, score) => sum + score.totalScore, 0)
+}
+
+/**
+ * Losowo przesuwa osobę z jednej grupy do innej (jeśli jest miejsce).
+ * Zwraca nowe przypisania grup lub null jeśli nie można wykonać zmiany.
+ */
+export function randomlyMovePerson(
+  groupAssignments: GroupAssignment[],
+  places: ParkingPlaceConfig[],
+): GroupAssignment[] | null {
+  if (groupAssignments.length === 0) return null
+
+  // Znajdź wszystkie osoby
+  const allPersonIds = new Set<string>()
+  for (const group of groupAssignments) {
+    for (const pid of group.personIds) {
+      allPersonIds.add(pid)
+    }
+  }
+
+  if (allPersonIds.size === 0) return null
+
+  // Losowo wybierz osobę
+  const personIdsArray = Array.from(allPersonIds)
+  const randomPersonId =
+    personIdsArray[Math.floor(Math.random() * personIdsArray.length)]
+
+  // Znajdź grupę źródłową
+  const sourceGroupIndex = groupAssignments.findIndex((g) =>
+    g.personIds.includes(randomPersonId),
+  )
+  if (sourceGroupIndex === -1) return null
+
+  // Losowo wybierz grupę docelową (różną od źródłowej)
+  const availableTargetIndices = groupAssignments
+    .map((_, idx) => idx)
+    .filter((idx) => idx !== sourceGroupIndex)
+
+  if (availableTargetIndices.length === 0) return null
+
+  const targetIndex =
+    availableTargetIndices[
+      Math.floor(Math.random() * availableTargetIndices.length)
+    ]
+
+  const targetPlace = places.find(
+    (p) => p.id === groupAssignments[targetIndex].placeId,
+  )
+  if (!targetPlace) return null
+
+  // Sprawdź czy jest miejsce w grupie docelowej
+  const targetGroup = groupAssignments[targetIndex]
+  if (targetGroup.personIds.length >= targetPlace.maxPersons) {
+    return null // Brak miejsca
+  }
+
+  // Wykonaj przesunięcie
+  const updatedAssignments = groupAssignments.map((group, idx) => {
+    if (idx === sourceGroupIndex) {
+      return {
+        ...group,
+        personIds: group.personIds.filter((id) => id !== randomPersonId),
+      }
+    }
+    if (idx === targetIndex) {
+      return {
+        ...group,
+        personIds: [...group.personIds, randomPersonId],
+      }
+    }
+    return group
+  })
+
+  return updatedAssignments
+}
+
+/**
+ * Wykonuje jedną iterację symulowanego wyżarzania:
+ * losowo przesuwa osobę i zwraca nowy plan (jeśli zmiana jest możliwa).
+ */
+export function performSimulatedAnnealingIteration(
+  currentPlan: ParkingPlan,
+  currentAssignments: GroupAssignment[],
+  persons: Person[],
+  places: ParkingPlaceConfig[],
+  weights: ObjectiveWeights,
+): {
+  newPlan: ParkingPlan
+  newAssignments: GroupAssignment[]
+  totalScore: number
+} | null {
+  const newAssignments = randomlyMovePerson(currentAssignments, places)
+  if (!newAssignments) return null
+
+  const newPlan = updatePlanAfterGroupChange(
+    currentPlan,
+    persons,
+    places,
+    weights,
+    newAssignments,
+  )
+
+  const totalScore = calculateTotalScore(newPlan)
+
+  return {
+    newPlan,
+    newAssignments,
+    totalScore,
   }
 }
 
