@@ -4,7 +4,6 @@ import type {
   GroupAssignment,
   ParkingPlaceConfig,
 } from '../utils/planner'
-import type { ScheduleRule } from '../types/schedule'
 
 interface GroupAssignmentEditorProps {
   persons: Person[]

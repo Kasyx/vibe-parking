@@ -410,7 +410,7 @@ export function generateParkingPlan(
   const weeks = options.weeks ?? 4
 
   if (persons.length === 0 || places.length === 0) {
-    return { entries: [], weeks }
+    return { entries: [], weeks, placeScores: [] }
   }
 
   const groups = assignPersonsToPlaces(persons, places)

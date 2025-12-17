@@ -1,10 +1,12 @@
-export enum Weekday {
-  Monday = 'MONDAY',
-  Tuesday = 'TUESDAY',
-  Wednesday = 'WEDNESDAY',
-  Thursday = 'THURSDAY',
-  Friday = 'FRIDAY',
-}
+export const Weekday = {
+  Monday: 'MONDAY',
+  Tuesday: 'TUESDAY',
+  Wednesday: 'WEDNESDAY',
+  Thursday: 'THURSDAY',
+  Friday: 'FRIDAY',
+} as const
+
+export type Weekday = (typeof Weekday)[keyof typeof Weekday]
 
 export const WEEKDAY_LABELS_PL: Record<Weekday, string> = {
   [Weekday.Monday]: 'Poniedziałek',

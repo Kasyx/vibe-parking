@@ -1,19 +1,23 @@
-## Planner miejsc parkingowych
+# Planner miejsc parkingowych
 
 Aplikacja webowa do planowania korzystania z miejsc parkingowych między wieloma osobami.
-Na tym etapie pozwala zdefiniować użytkowników oraz ich preferencje parkowania,
-z zapisem danych lokalnie w przeglądarce.
 
-### Funkcje (aktualna wersja)
+## 🌐 Aplikacja online
+
+Aplikacja jest dostępna na GitHub Pages: **https://kasyx.github.io/vibe-parking/**
+
+## Funkcje
 
 - **Zarządzanie osobami**:
   - Dodawanie osób z polem „Imię i nazwisko”.
+  - Przypisywanie wielu zespołów do osoby (lub brak zespołu).
   - Edycja istniejących osób.
   - Usuwanie osób z potwierdzeniem.
+  - Import i eksport osób do pliku JSON.
 
-- **Typy harmonogramów** (dla każdej osoby można zdefiniować jedną regułę):
+- **Typy harmonogramów** (dla każdej osoby można zdefiniować wiele reguł):
   1. **Zawsze w wybrane dni tygodnia co X tygodni**  
-     - wybór dni tygodnia (Pn–Nd),  
+     - wybór dni tygodnia (Pn–Pt),  
      - interwał powtarzania: co 1, 2, 3 lub 4 tygodnie.
   2. **Jeden z wybranych dni tygodnia co X tygodni**  
      - lista możliwych dni; algorytm później wybierze konkretny dzień,  
@@ -22,47 +26,59 @@ z zapisem danych lokalnie w przeglądarce.
      - liczba dni w miesiącu (1–31),  
      - lista dni tygodnia, które mają być wykluczone (np. weekendy).
 
+- **Planowanie miejsc parkingowych**:
+  - Automatyczne przypisanie osób do grup parkingowych.
+  - Algorytm optymalizujący przypisania z uwzględnieniem:
+    - Separacji zespołów (unikanie osób z tego samego zespołu w jednej grupie)
+    - Priorytetyzacji częstych przyjazdów
+    - Minimalizacji konfliktów
+  - Ręczna edycja przypisań (drag & drop).
+  - Optymalizacja za pomocą algorytmu symulowanego wyżarzania (1000 iteracji).
+
 - **Zapisywanie danych**:
-  - Lista osób i ich harmonogramów jest zapisywana w `localStorage`
-    pod kluczem `parkingPlanner.persons.v1`.
+  - Lista osób i ich harmonogramów jest zapisywana w `localStorage`.
   - Dane zostają zachowane między odświeżeniami strony.
 
-- **UI**:
-  - Nowoczesny, responsywny layout w dwóch kolumnach (formularz + lista osób).
-  - Czytelne komunikaty walidacji po polsku.
-
-- **Moduł planowania (placeholder)**:
-  - Funkcja `generateParkingPlan` w `src/utils/planner.ts` przyjmuje listę osób
-    oraz konfigurację miejsc parkingowych i na razie zwraca pusty plan.
-  - W interfejsie jest sekcja „Planowanie miejsc (w przygotowaniu)” z przyciskiem,
-    który informuje, że algorytm zostanie dodany w kolejnym etapie.
-
-### Jak uruchomić projekt
+## Jak uruchomić lokalnie
 
 Wymagania: Node.js (zalecane aktualne LTS) oraz npm.
 
 ```bash
-cd /Users/lmudlaff/Documents/vibe-parking
 npm install
 npm run dev
 ```
 
 Następnie otwórz adres wyświetlony w konsoli (domyślnie `http://localhost:5173`).
 
-### Struktura ważniejszych plików
+## Deployment na GitHub Pages
 
-- `src/types/schedule.ts` – typy dni tygodnia i trzech rodzajów harmonogramów.
-- `src/types/person.ts` – model `Person`.
-- `src/components/PersonForm.tsx` – formularz dodawania/edycji osoby + walidacja.
-- `src/components/PersonList.tsx` – lista osób z podglądem harmonogramu.
-- `src/hooks/useLocalStorage.ts` – hook do zapisu/odczytu w `localStorage`.
-- `src/utils/planner.ts` – placeholder pod przyszły algorytm planowania.
-- `src/App.tsx` – główna strona z layoutem, formularzem, listą i sekcją planowania.
+Aplikacja jest automatycznie deployowana na GitHub Pages przy każdym pushu do brancha `main`.
 
-### Kolejne kroki
+### Konfiguracja GitHub Pages
 
-- Zaprojektowanie i implementacja algorytmu planowania (np. symulowane wyżarzanie),
-  który będzie respektować m.in.:
-  - maks. 4 osoby przypisane do jednego miejsca,
-  - w danym dniu tylko jedna osoba korzysta z danego miejsca,
-  - preferencje zdefiniowane w harmonogramach.
+1. **Włącz GitHub Pages w ustawieniach repozytorium:**
+   - Przejdź do Settings → Pages
+   - W sekcji "Source" wybierz **"GitHub Actions"** (nie "Deploy from a branch")
+   - Zapisz zmiany
+
+2. **Wypchnij zmiany do repozytorium:**
+   ```bash
+   git add .
+   git commit -m "Configure GitHub Pages"
+   git push origin main
+   ```
+
+3. **Sprawdź status deploymentu:**
+   - Przejdź do zakładki "Actions" w repozytorium
+   - Workflow automatycznie zbuduje i wdroży aplikację
+   - Aplikacja będzie dostępna pod: `https://kasyx.github.io/vibe-parking/`
+
+Workflow znajduje się w `.github/workflows/deploy.yml`.
+
+## Struktura projektu
+
+- `src/types/` – definicje typów TypeScript (osoby, harmonogramy, zespoły, cele)
+- `src/components/` – komponenty React (formularze, listy, tabele)
+- `src/utils/` – logika biznesowa (planowanie, optymalizacja)
+- `src/hooks/` – hooki React (localStorage)
+- `dist/` – zbudowana wersja produkcyjna (gotowa do uruchomienia)
