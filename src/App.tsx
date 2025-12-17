@@ -31,6 +31,7 @@ function App() {
   >(null)
   const [iterationCount, setIterationCount] = useState<number>(0)
   const [totalScore, setTotalScore] = useState<number>(0)
+  const [activeTab, setActiveTab] = useState<'persons' | 'planning'>('persons')
 
   // Migracja danych: konwersja teamId -> teamIds
   useEffect(() => {
@@ -91,6 +92,77 @@ function App() {
 
   const handleCancelEdit = () => {
     setEditingPersonId(null)
+  }
+
+  const handleExportPersons = () => {
+    try {
+      const dataStr = JSON.stringify(persons, null, 2)
+      const dataBlob = new Blob([dataStr], { type: 'application/json' })
+      const url = URL.createObjectURL(dataBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `parking-persons-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      alert('Błąd podczas eksportu danych: ' + (error instanceof Error ? error.message : String(error)))
+    }
+  }
+
+  const handleImportPersons = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string
+        const imported = JSON.parse(text)
+
+        // Walidacja: sprawdź czy to tablica
+        if (!Array.isArray(imported)) {
+          alert('Nieprawidłowy format pliku. Oczekiwana tablica osób.')
+          return
+        }
+
+        // Podstawowa walidacja struktury
+        const isValid = imported.every((p) => {
+          return (
+            typeof p === 'object' &&
+            p !== null &&
+            typeof p.id === 'string' &&
+            typeof p.fullName === 'string' &&
+            Array.isArray(p.teamIds) &&
+            Array.isArray(p.scheduleRules)
+          )
+        })
+
+        if (!isValid) {
+          alert('Nieprawidłowa struktura danych. Niektóre osoby mają błędne pola.')
+          return
+        }
+
+        const confirmed = window.confirm(
+          `Czy chcesz zastąpić obecne osoby (${persons.length}) importowanymi (${imported.length})?`,
+        )
+        if (confirmed) {
+          setPersons(imported)
+          setEditingPersonId(null)
+          alert(`Zaimportowano ${imported.length} osób.`)
+        }
+      } catch (error) {
+        alert('Błąd podczas importu pliku: ' + (error instanceof Error ? error.message : String(error)))
+      }
+    }
+    reader.onerror = () => {
+      alert('Błąd podczas odczytu pliku.')
+    }
+    reader.readAsText(file)
+
+    // Reset input, żeby można było zaimportować ten sam plik ponownie
+    event.target.value = ''
   }
 
   const handleGeneratePlanClick = () => {
@@ -163,8 +235,8 @@ function App() {
     let bestScore = totalScore
     let newIterationCount = iterationCount
 
-    // Wykonaj 500 iteracji
-    for (let i = 0; i < 500; i += 1) {
+    // Wykonaj 1000 iteracji
+    for (let i = 0; i < 1000; i += 1) {
       const result = performSimulatedAnnealingIteration(
         currentPlan,
         currentAssignments,
@@ -201,32 +273,84 @@ function App() {
       <header className="app-header">
         <h1>Planner miejsc parkingowych</h1>
         <p className="subtitle">
-          Dodaj osoby i zdefiniuj ich preferencje parkowania. Moduł planowania
-          miejsc pojawi się w kolejnym kroku.
+          Dodaj osoby i zdefiniuj ich preferencje parkowania, a następnie wygeneruj plan miejsc parkingowych.
         </p>
       </header>
 
-      <main className="app-main">
-        <div className="layout-two-columns">
-          <div>
-            <PersonForm
-              onSubmit={handleUpsertPerson}
-              editingPerson={editingPerson}
-              onCancelEdit={handleCancelEdit}
-            />
-          </div>
-          <div>
-            <PersonList
-              persons={persons}
-              onEdit={handleEditPerson}
-              onDelete={handleDeletePerson}
-              currentlyEditingId={editingPersonId}
-            />
-          </div>
-        </div>
+      <div className="tabs">
+        <button
+          type="button"
+          className={`tab-button ${activeTab === 'persons' ? 'active' : ''}`}
+          onClick={() => setActiveTab('persons')}
+        >
+          Osoby
+        </button>
+        <button
+          type="button"
+          className={`tab-button ${activeTab === 'planning' ? 'active' : ''}`}
+          onClick={() => setActiveTab('planning')}
+        >
+          Planowanie
+        </button>
+      </div>
 
-        <section className="card">
-          <h2>Konfiguracja planowania</h2>
+      <main className="app-main">
+        {activeTab === 'persons' && (
+          <>
+            <section className="card">
+              <div className="import-export-controls">
+                <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>
+                  Import i eksport danych
+                </h3>
+                <div className="import-export-buttons">
+                  <button
+                    type="button"
+                    onClick={handleExportPersons}
+                    disabled={persons.length === 0}
+                    className="primary"
+                  >
+                    Eksportuj osoby do JSON
+                  </button>
+                  <label className="import-button-label">
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleImportPersons}
+                      style={{ display: 'none' }}
+                    />
+                    <span className="button primary">Importuj osoby z JSON</span>
+                  </label>
+                </div>
+                <p className="hint-text" style={{ marginTop: '0.5rem' }}>
+                  Eksport zapisze wszystkie osoby do pliku JSON. Import zastąpi
+                  obecne osoby danymi z pliku.
+                </p>
+              </div>
+            </section>
+            <div className="layout-two-columns">
+              <div>
+                <PersonForm
+                  onSubmit={handleUpsertPerson}
+                  editingPerson={editingPerson}
+                  onCancelEdit={handleCancelEdit}
+                />
+              </div>
+              <div>
+                <PersonList
+                  persons={persons}
+                  onEdit={handleEditPerson}
+                  onDelete={handleDeletePerson}
+                  currentlyEditingId={editingPersonId}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'planning' && (
+          <>
+            <section className="card">
+              <h2>Konfiguracja planowania</h2>
           <div className="form-row">
             <label>
               Liczba miejsc parkingowych
@@ -307,14 +431,14 @@ function App() {
               <span className="slider-value">{weights.generalConflicts}</span>
             </label>
           </div>
-          <button type="button" onClick={handleGeneratePlanClick}>
-            Wygeneruj plan
-          </button>
-        </section>
+              <button type="button" onClick={handleGeneratePlanClick}>
+                Wygeneruj plan
+              </button>
+            </section>
 
-        {plan && groupAssignments && (
-          <>
-            <section className="card">
+            {plan && groupAssignments && (
+              <>
+                <section className="card">
               <GroupAssignmentEditor
                 persons={persons}
                 places={Array.from({ length: placesCount }, (_, index) => ({
@@ -330,6 +454,7 @@ function App() {
                   <div className="stat-item">
                     <span className="stat-label">Suma wag:</span>
                     <span className="stat-value">{totalScore.toFixed(2)}</span>
+                    <span className="stat-hint">(im mniej, tym lepiej)</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Iteracje:</span>
@@ -341,7 +466,7 @@ function App() {
                   className="primary"
                   onClick={handleRunIterations}
                 >
-                  Wykonaj 500 iteracji optymalizacji
+                  Wykonaj 1000 iteracji optymalizacji
                 </button>
               </div>
             </section>
@@ -389,7 +514,9 @@ function App() {
                   </table>
                 </div>
               )}
-            </section>
+                </section>
+              </>
+            )}
           </>
         )}
       </main>
